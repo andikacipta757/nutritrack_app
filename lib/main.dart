@@ -59,13 +59,16 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int targetCalorie = 2100;
+  // Data Profil Pengguna & BMR
+  int age = 25;
+  double weight = 65; // kg
+  double height = 170; // cm
+  String gender = 'Pria'; // 'Pria' atau 'Wanita'
+  double activityMultiplier = 1.375; // Ringan
+  
+  int targetCalorie = 2000;
   int waterGlasses = 0;
   bool isLoading = true;
-
-  int carbsConsumed = 120, carbsTarget = 250;
-  int proteinConsumed = 65, proteinTarget = 120;
-  int fatConsumed = 40, fatTarget = 70;
 
   List<MealItem> meals = [];
 
@@ -75,18 +78,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadSavedData();
   }
 
-  // --- FUNGSI MEMBACA DATA LOGKAL ---
+  // --- MENGHITUNG TDEE (TARGET KALORI OTOMATIS) ---
+  void _calculateTDEE() {
+    double bmr;
+    if (gender == 'Pria') {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    } else {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    }
+    setState(() {
+      targetCalorie = (bmr * activityMultiplier).round();
+    });
+  }
+
+  // --- MEMBACA DATA LOKAL ---
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       waterGlasses = prefs.getInt('waterGlasses') ?? 0;
-      
+      age = prefs.getInt('age') ?? 25;
+      weight = prefs.getDouble('weight') ?? 65.0;
+      height = prefs.getDouble('height') ?? 170.0;
+      gender = prefs.getString('gender') ?? 'Pria';
+      activityMultiplier = prefs.getDouble('activityMultiplier') ?? 1.375;
+
+      _calculateTDEE();
+
       final String? mealsString = prefs.getString('savedMeals');
       if (mealsString != null) {
         final List<dynamic> decoded = jsonDecode(mealsString);
         meals = decoded.map((item) => MealItem.fromJson(item)).toList();
       } else {
-        // Data default awal jika aplikasi baru pertama dibuka
         meals = [
           MealItem(name: 'Oatmeal & Pisang', calories: 320, category: 'Sarapan'),
           MealItem(name: 'Ayam Bakar & Nasi Merah', calories: 550, category: 'Makan Siang'),
@@ -96,16 +118,144 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // --- FUNGSI MENYIMPAN DATA LOKAL ---
+  // --- MENYIMPAN DATA LOKAL ---
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('waterGlasses', waterGlasses);
-    
+    await prefs.setInt('age', age);
+    await prefs.setDouble('weight', weight);
+    await prefs.setDouble('height', height);
+    await prefs.setString('gender', gender);
+    await prefs.setDouble('activityMultiplier', activityMultiplier);
+
     final String encoded = jsonEncode(meals.map((e) => e.toJson()).toList());
     await prefs.setString('savedMeals', encoded);
   }
 
   int get totalConsumed => meals.fold(0, (sum, item) => sum + item.calories);
+
+  // Target Makro berdasarkan % Kalori (50% Karbo, 25% Protein, 25% Lemak)
+  int get carbsTarget => ((targetCalorie * 0.50) / 4).round();
+  int get proteinTarget => ((targetCalorie * 0.25) / 4).round();
+  int get fatTarget => ((targetCalorie * 0.25) / 9).round();
+
+  // Estimasi Makro Terkonsumsi (Simulasi Rasio Rata-rata Makanan)
+  int get carbsConsumed => ((totalConsumed * 0.50) / 4).round();
+  int get proteinConsumed => ((totalConsumed * 0.25) / 4).round();
+  int get fatConsumed => ((totalConsumed * 0.25) / 9).round();
+
+  // --- DIALOG EDIT PROFIL & HITUNG BMR ---
+  void _showProfileDialog() {
+    final ageController = TextEditingController(text: age.toString());
+    final weightController = TextEditingController(text: weight.toString());
+    final heightController = TextEditingController(text: height.toString());
+    String tempGender = gender;
+    double tempActivity = activityMultiplier;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20, left: 20, right: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Pengaturan Profil & Target BMR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: tempGender,
+                            decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
+                            items: ['Pria', 'Wanita'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                            onChanged: (v) => setModalState(() => tempGender = v!),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: ageController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'Usia (Thn)', border: OutlineInputBorder()),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: weightController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'BB (kg)', border: OutlineInputBorder()),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: heightController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(labelText: 'TB (cm)', border: OutlineInputBorder()),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<double>(
+                      value: tempActivity,
+                      decoration: const InputDecoration(labelText: 'Tingkat Aktivitas Harian', border: OutlineInputBorder()),
+                      items: const [
+                        DropdownMenuItem(value: 1.2, child: Text('Sedenter (Jarang Olahraga)')),
+                        DropdownMenuItem(value: 1.375, child: Text('Ringan (Olahraga 1-3x/minggu)')),
+                        DropdownMenuItem(value: 1.55, child: Text('Sedang (Olahraga 3-5x/minggu)')),
+                        DropdownMenuItem(value: 1.725, child: Text('Berat (Olahraga 6-7x/minggu)')),
+                      ],
+                      onChanged: (v) => setModalState(() => tempActivity = v!),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D9488),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            gender = tempGender;
+                            age = int.tryParse(ageController.text) ?? age;
+                            weight = double.tryParse(weightController.text) ?? weight;
+                            height = double.tryParse(heightController.text) ?? height;
+                            activityMultiplier = tempActivity;
+                            _calculateTDEE();
+                          });
+                          _saveData();
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Hitung Ulang Target Kalori', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showAddMealDialog() {
     final nameController = TextEditingController();
@@ -115,9 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -134,27 +282,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 15),
                   TextField(
                     controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nama Makanan',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+                    decoration: InputDecoration(labelText: 'Nama Makanan', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: calController,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Kalori (kcal)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+                    decoration: InputDecoration(labelText: 'Kalori (kcal)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
-                    decoration: InputDecoration(
-                      labelText: 'Kategori',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+                    decoration: InputDecoration(labelText: 'Kategori', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: ['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan']
                         .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                         .toList(),
@@ -178,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           setState(() {
                             meals.add(MealItem(name: name, calories: cal, category: selectedCategory));
                           });
-                          _saveData(); // Simpan otomatis!
+                          _saveData();
                           Navigator.pop(context);
                         }
                       },
@@ -197,9 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF0D9488))),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFF0D9488))));
     }
 
     int remaining = targetCalorie - totalConsumed;
@@ -216,6 +353,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person, color: Colors.white),
+            onPressed: _showProfileDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.workspace_premium, color: Colors.amber),
             onPressed: () {
@@ -242,7 +383,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatColumn('Target', '$targetCalorie', 'kcal', Colors.grey),
+                        _buildStatColumn('Target (BMR)', '$targetCalorie', 'kcal', Colors.grey),
                         Stack(
                           alignment: Alignment.center,
                           children: [
@@ -424,7 +565,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-            Text('${current}g', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+            Text('${current}/${target}g', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 4),
