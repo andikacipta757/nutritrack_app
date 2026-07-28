@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/food_data.dart';
+import '../models/meal_item.dart';
 
 class AddFoodScreen extends StatefulWidget {
   const AddFoodScreen({super.key});
@@ -11,10 +12,7 @@ class AddFoodScreen extends StatefulWidget {
 class _AddFoodScreenState extends State<AddFoodScreen> {
   final _nameController = TextEditingController();
   final _caloriesController = TextEditingController();
-  final _carbsController = TextEditingController();
-  final _proteinController = TextEditingController();
-  final _fatController = TextEditingController();
-
+  String _selectedCategory = 'Sarapan';
   FoodItem? _selectedFood;
 
   void _onFoodSelected(FoodItem item) {
@@ -22,9 +20,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       _selectedFood = item;
       _nameController.text = item.name;
       _caloriesController.text = item.calories.toStringAsFixed(0);
-      _carbsController.text = item.carbs.toStringAsFixed(1);
-      _proteinController.text = item.protein.toStringAsFixed(1);
-      _fatController.text = item.fat.toStringAsFixed(1);
     });
   }
 
@@ -33,7 +28,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tambah Makanan'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF0D9488),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -42,12 +37,12 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
           crossAxisAlignment: CrossAlignment.start,
           children: [
             const Text(
-              'Cari atau Ketik Makanan',
+              'Cari Makanan di Database',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
-            // Widget AutoComplete / Search Suggestion
+            // Autocomplete Search
             Autocomplete<FoodItem>(
               displayStringForOption: (FoodItem option) => option.name,
               optionsBuilder: (TextEditingValue textEditingValue) {
@@ -69,132 +64,101 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   focusNode: focusNode,
                   onEditingComplete: onEditingComplete,
                   decoration: InputDecoration(
-                    hintText: 'Cari misal: Nasi, Ayam, Telur...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                    hintText: 'Ketik misal: Nasi, Ayam, Telur...',
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF0D9488)),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
                   ),
                 );
               },
             ),
 
-            const SizedBox(height: 16),
-
-            // Banner informasi nutrisi jika makanan dipilih dari database
-            if (_selectedFood != null)
+            if (_selectedFood != null) ...[
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.teal.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.shade200),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.teal),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Porsi standar database: ${_selectedFood!.servingSize}',
-                        style: const TextStyle(
-                          color: Colors.teal,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '💡 Porsi standar: ${_selectedFood!.servingSize} (${_selectedFood!.calories.toInt()} kcal, Karbo: ${_selectedFood!.carbs}g, Prot: ${_selectedFood!.protein}g, Lemak: ${_selectedFood!.fat}g)',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF0D9488), fontWeight: FontWeight.bold),
                 ),
               ),
+            ],
 
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 10),
 
             const Text(
-              'Rincian Nutrisi (Otomatis Terisi)',
+              'Detail Catatan',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
-            // Input Jumlah Kalori
             TextField(
               controller: _caloriesController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Kalori (kcal)',
-                prefixIcon: Icon(Icons.local_fire_department, color: Colors.orange),
+                labelText: 'Jumlah Kalori (kcal)',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.local_fire_department, color: Colors.orange),
               ),
             ),
             const SizedBox(height: 12),
 
-            // Input Makronutrisi (Karbo, Protein, Lemak)
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _carbsController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Karbo (g)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _proteinController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Protein (g)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _fatController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Lemak (g)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: const InputDecoration(
+                labelText: 'Kategori Makanan',
+                border: OutlineInputBorder(),
+              ),
+              items: ['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan']
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedCategory = val);
+              },
             ),
 
             const SizedBox(height: 24),
 
-            // Tombol Simpan
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: const Color(0xFF0D9488),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 onPressed: () {
-                  // Logika simpan makanan ke database lokal
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Makanan berhasil dicatat!'),
-                      backgroundColor: Colors.teal,
-                    ),
-                  );
-                  Navigator.pop(context);
+                  final String name = _nameController.text.isEmpty
+                      ? (_selectedFood?.name ?? 'Makanan')
+                      : _nameController.text;
+                  final int calories = int.tryParse(_caloriesController.text) ?? 0;
+
+                  if (calories > 0) {
+                    final newMeal = MealItem(
+                      name: name,
+                      calories: calories,
+                      category: _selectedCategory,
+                    );
+                    Navigator.pop(context, newMeal);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Masukkan kalori yang valid')),
+                    );
+                  }
                 },
                 child: const Text(
-                  'Simpan Makanan',
-                  style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                  'Simpan Ke Jurnal',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
