@@ -19,7 +19,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     setState(() {
       _selectedFood = item;
       _nameController.text = item.name;
-      _caloriesController.text = item.calories.toStringAsFixed(0);
+      _caloriesController.text = item.calories.toInt().toString();
     });
   }
 
@@ -84,7 +84,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '💡 Porsi standar: ${_selectedFood!.servingSize} (${_selectedFood!.calories.toInt()} kcal, Karbo: ${_selectedFood!.carbs}g, Prot: ${_selectedFood!.protein}g, Lemak: ${_selectedFood!.fat}g)',
+                  '💡 Porsi standar: ${_selectedFood!.servingSize} (${_selectedFood!.calories.toInt()} kcal)',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF0D9488), fontWeight: FontWeight.bold),
                 ),
               ),
@@ -97,6 +97,16 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
             const Text(
               'Detail Catatan',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Nama Makanan',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.fastfood, color: Colors.teal),
+              ),
             ),
             const SizedBox(height: 12),
 
