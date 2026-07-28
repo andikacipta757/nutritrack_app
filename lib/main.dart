@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'models/meal_item.dart';
+import 'screens/paywall_dialog.dart';
 
 void main() {
   runApp(const NutriTrackApp());
@@ -55,28 +57,6 @@ class _NutriTrackAppState extends State<NutriTrackApp> {
   }
 }
 
-class MealItem {
-  final String name;
-  final int calories;
-  final String category;
-
-  MealItem({required this.name, required this.calories, required this.category});
-
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'calories': calories,
-        'category': category,
-      };
-
-  factory MealItem.fromJson(Map<String, dynamic> json) {
-    return MealItem(
-      name: json['name'] ?? '',
-      calories: json['calories'] ?? 0,
-      category: json['category'] ?? 'Sarapan',
-    );
-  }
-}
-
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final bool isDarkMode;
@@ -93,14 +73,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double height = 170;
   String gender = 'Pria';
   double activityMultiplier = 1.375;
-  
+
   int targetCalorie = 2000;
   int waterGlasses = 0;
   bool isLoading = true;
-  bool isProUser = false; // Status Keanggotaan Premium
+  bool isProUser = false;
 
   List<MealItem> meals = [];
-
   final List<int> weeklyHistory = [1850, 2100, 1950, 2200, 1800, 2050, 1900];
   final List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -111,12 +90,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _calculateTDEE() {
-    double bmr;
-    if (gender == 'Pria') {
-      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
-    } else {
-      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
-    }
+    double bmr = (gender == 'Pria')
+        ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+        : (10 * weight) + (6.25 * height) - (5 * age) - 161;
     setState(() {
       targetCalorie = (bmr * activityMultiplier).round();
     });
@@ -164,7 +140,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   int get totalConsumed => meals.fold(0, (sum, item) => sum + item.calories);
-
   int get carbsTarget => ((targetCalorie * 0.50) / 4).round();
   int get proteinTarget => ((targetCalorie * 0.25) / 4).round();
   int get fatTarget => ((targetCalorie * 0.25) / 9).round();
@@ -173,162 +148,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int get proteinConsumed => ((totalConsumed * 0.25) / 4).round();
   int get fatConsumed => ((totalConsumed * 0.25) / 9).round();
 
-  // --- HALAMAN PAYWALL PREMIUM ---
-  void _showPaywallDialog() {
-    String selectedPlan = 'monthly'; // 'monthly' atau 'yearly'
-
+  void _showPaywall() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.85,
-              decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40, height: 4,
-                      decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(2)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.workspace_premium, color: Colors.amber, size: 32),
-                      const SizedBox(width: 8),
-                      Text('NutriTrack PRO', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.isDarkMode ? Colors.amber : const Color(0xFF1E3A8A))),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Center(
-                    child: Text('Buka seluruh potensi kesehatanmu tanpa batas!', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Daftar Keunggulan Pro
-                  _buildProFeature(Icons.block, '100% Bebas Iklan Banner & Pop-up'),
-                  _buildProFeature(Icons.insights, 'Analisis Makronutrisi & Laporan Mingguan Lengkap'),
-                  _buildProFeature(Icons.cloud_sync, 'Backup Otomatis Cloud (Multi Devices)'),
-                  _buildProFeature(Icons.support_agent, 'Dukungan Prioritas Kebutuhan Nutrisi'),
-                  
-                  const Spacer(),
-
-                  // Pilihan Paket Langganan
-                  GestureDetector(
-                    onTap: () => setModalState(() => selectedPlan = 'monthly'),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: selectedPlan == 'monthly' ? const Color(0xFF0D9488) : Colors.grey.shade300, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                        color: selectedPlan == 'monthly' ? const Color(0xFF0D9488).withOpacity(0.1) : Colors.transparent,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Paket Bulanan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              Text('Batalkan kapan saja', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                            ],
-                          ),
-                          Text('Rp 49.000 / bln', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D9488))),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => setModalState(() => selectedPlan = 'yearly'),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: selectedPlan == 'yearly' ? const Color(0xFF0D9488) : Colors.grey.shade300, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                        color: selectedPlan == 'yearly' ? const Color(0xFF0D9488).withOpacity(0.1) : Colors.transparent,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Paket Tahunan (Hemat 40%)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              Text('Tagihan Rp 349.000 / tahun', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                            ],
-                          ),
-                          Text('Rp 29.000 / bln', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D9488))),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Tombol Berlangganan / Coba
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D9488),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isProUser = true;
-                        });
-                        _saveData();
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('🎉 Selamat! Anda sekarang adalah Pengguna NutriTrack PRO!')),
-                        );
-                      },
-                      child: const Text('Aktifkan NutriTrack PRO (Simulasi)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (isProUser)
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            isProUser = false;
-                          });
-                          _saveData();
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Kembali ke Free Tier (Reset)', style: TextStyle(color: Colors.red, fontSize: 12)),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildProFeature(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF0D9488), size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
-        ],
+      builder: (context) => PaywallDialog(
+        isDarkMode: widget.isDarkMode,
+        isProUser: isProUser,
+        onProStatusChanged: (status) {
+          setState(() => isProUser = status);
+          _saveData();
+        },
       ),
     );
   }
@@ -350,7 +181,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 8),
               Text('Rata-rata asupan: $avgCalorie kcal / hari', style: const TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 20),
-              
               SizedBox(
                 height: 150,
                 child: Row(
@@ -382,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 20),
               const Text('💡 Catatan NutriTrack:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              const Text('Asupan mingguanmu cukup stabil! Pertahankan pola makan seimbang untuk mencapai target ideal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const Text('Asupan mingguanmu cukup stabil! Pertahankan pola makan seimbang.', style: TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 20),
             ],
           ),
@@ -624,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           IconButton(
             icon: Icon(Icons.workspace_premium, color: isProUser ? Colors.amber : Colors.white70),
-            onPressed: _showPaywallDialog,
+            onPressed: _showPaywall,
             tooltip: 'NutriTrack Pro',
           ),
         ],
@@ -781,7 +611,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // Slot Iklan otomatis hilang jika pengguna menjadi PRO!
       bottomSheet: isProUser
           ? const SizedBox.shrink()
           : Container(
