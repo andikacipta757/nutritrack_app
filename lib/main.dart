@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const NutriTrackApp());
@@ -30,9 +32,23 @@ class NutriTrackApp extends StatelessWidget {
 class MealItem {
   final String name;
   final int calories;
-  final String category; // Sarapan, Makan Siang, Makan Malam, Camilan
+  final String category;
 
   MealItem({required this.name, required this.calories, required this.category});
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'calories': calories,
+        'category': category,
+      };
+
+  factory MealItem.fromJson(Map<String, dynamic> json) {
+    return MealItem(
+      name: json['name'] ?? '',
+      calories: json['calories'] ?? 0,
+      category: json['category'] ?? 'Sarapan',
+    );
+  }
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -44,18 +60,50 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int targetCalorie = 2100;
-  int waterGlasses = 4; // Target 8 gelas
-  
-  // Dummy data makronutrisi (gram)
+  int waterGlasses = 0;
+  bool isLoading = true;
+
   int carbsConsumed = 120, carbsTarget = 250;
   int proteinConsumed = 65, proteinTarget = 120;
   int fatConsumed = 40, fatTarget = 70;
 
-  final List<MealItem> meals = [
-    MealItem(name: 'Oatmeal & Pisang', calories: 320, category: 'Sarapan'),
-    MealItem(name: 'Ayam Bakar & Nasi Merah', calories: 550, category: 'Makan Siang'),
-    MealItem(name: 'Apel Merah', calories: 95, category: 'Camilan'),
-  ];
+  List<MealItem> meals = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  // --- FUNGSI MEMBACA DATA LOGKAL ---
+  Future<void> _loadSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      waterGlasses = prefs.getInt('waterGlasses') ?? 0;
+      
+      final String? mealsString = prefs.getString('savedMeals');
+      if (mealsString != null) {
+        final List<dynamic> decoded = jsonDecode(mealsString);
+        meals = decoded.map((item) => MealItem.fromJson(item)).toList();
+      } else {
+        // Data default awal jika aplikasi baru pertama dibuka
+        meals = [
+          MealItem(name: 'Oatmeal & Pisang', calories: 320, category: 'Sarapan'),
+          MealItem(name: 'Ayam Bakar & Nasi Merah', calories: 550, category: 'Makan Siang'),
+        ];
+      }
+      isLoading = false;
+    });
+  }
+
+  // --- FUNGSI MENYIMPAN DATA LOKAL ---
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('waterGlasses', waterGlasses);
+    
+    final String encoded = jsonEncode(meals.map((e) => e.toJson()).toList());
+    await prefs.setString('savedMeals', encoded);
+  }
 
   int get totalConsumed => meals.fold(0, (sum, item) => sum + item.calories);
 
@@ -130,6 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           setState(() {
                             meals.add(MealItem(name: name, calories: cal, category: selectedCategory));
                           });
+                          _saveData(); // Simpan otomatis!
                           Navigator.pop(context);
                         }
                       },
@@ -147,6 +196,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF0D9488))),
+      );
+    }
+
     int remaining = targetCalorie - totalConsumed;
 
     return Scaffold(
@@ -176,7 +231,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- RINGKASAN UTAMA ---
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -213,7 +267,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const Divider(height: 30),
-                    // Makronutrisi Bars
                     Row(
                       children: [
                         Expanded(child: _buildMacroIndicator('Karbo', carbsConsumed, carbsTarget, Colors.orange)),
@@ -229,7 +282,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // --- TRACKER AIR MINUM ---
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -257,13 +309,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline, color: Colors.blue),
                           onPressed: () {
-                            if (waterGlasses > 0) setState(() => waterGlasses--);
+                            if (waterGlasses > 0) {
+                              setState(() => waterGlasses--);
+                              _saveData();
+                            }
                           },
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle, color: Colors.blue),
                           onPressed: () {
-                            if (waterGlasses < 12) setState(() => waterGlasses++);
+                            if (waterGlasses < 12) {
+                              setState(() => waterGlasses++);
+                              _saveData();
+                            }
                           },
                         ),
                       ],
@@ -274,7 +332,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 20),
 
-            // --- DAFTAR MAKANAN PER KATEGORI ---
             const Text('Jurnal Makanan Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
             const SizedBox(height: 10),
 
@@ -307,6 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   icon: const Icon(Icons.close, size: 16, color: Colors.red),
                                   onPressed: () {
                                     setState(() => meals.remove(item));
+                                    _saveData();
                                   },
                                 ),
                               ],
@@ -317,12 +375,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }),
 
-            const SizedBox(height: 50), // Margin bottom untuk ad banner
+            const SizedBox(height: 50),
           ],
         ),
       ),
 
-      // --- AD BANNER AREA ---
       bottomSheet: Container(
         width: double.infinity,
         height: 48,
