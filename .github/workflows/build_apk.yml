@@ -31,8 +31,12 @@ jobs:
         # Salin file android, ios, dan pubspec bawaan flutter
         cp -r temp_app/android ./ 2>/dev/null || true
         cp -r temp_app/ios ./ 2>/dev/null || true
-        # Install dependency & build apk
+        # Install dependency
         flutter pub get
+        # Generate App Icon & Splash Screen
+        flutter pub run flutter_launcher_icons
+        flutter pub run flutter_native_splash:create
+        # Build APK
         flutter build apk --release --no-tree-shake-icons
 
     - name: Upload APK Artifact
