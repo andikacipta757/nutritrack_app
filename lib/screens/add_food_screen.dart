@@ -70,6 +70,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
+
             Autocomplete<FoodItem>(
               displayStringForOption: (FoodItem option) => option.name,
               optionsBuilder: (TextEditingValue textEditingValue) {
@@ -101,6 +102,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 );
               },
             ),
+
             if (_selectedFood != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -111,18 +113,24 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 ),
                 child: Text(
                   '💡 Porsi standar: ${_selectedFood!.servingSize} (${_selectedFood!.calories.toInt()} kcal)',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF0D9488), fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF0D9488),
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
+
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 10),
+
             const Text(
               'Detail Catatan',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
@@ -132,16 +140,19 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               ),
             ),
             const SizedBox(height: 12),
+
             TextField(
               controller: _caloriesController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Jumlah Kalori (kcal)',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.local_fire_department, color: Colors.orange),
+                prefixIcon:
+                    Icon(Icons.local_fire_department, color: Colors.orange),
               ),
             ),
             const SizedBox(height: 12),
+
             DropdownButtonFormField<String>(
               value: _selectedCategory,
               decoration: const InputDecoration(
@@ -155,7 +166,9 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 if (val != null) setState(() => _selectedCategory = val);
               },
             ),
+
             const SizedBox(height: 24),
+
             SizedBox(
               width: double.infinity,
               height: 48,
@@ -170,7 +183,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                   final String name = _nameController.text.isEmpty
                       ? (_selectedFood?.name ?? 'Makanan')
                       : _nameController.text;
-                  final int calories = int.tryParse(_caloriesController.text) ?? 0;
+                  final int calories =
+                      int.tryParse(_caloriesController.text) ?? 0;
 
                   if (calories > 0) {
                     final newMeal = MealItem(
@@ -181,13 +195,17 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     Navigator.pop(context, newMeal);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Masukkan kalori yang valid')),
+                      const SnackBar(
+                          content: Text('Masukkan kalori yang valid')),
                     );
                   }
                 },
                 child: const Text(
                   'Simpan Ke Jurnal',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
