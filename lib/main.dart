@@ -25,6 +25,14 @@ class NutriTrackApp extends StatelessWidget {
   }
 }
 
+class MealItem {
+  final String title;
+  final int calories;
+  final IconData icon;
+
+  MealItem({required this.title, required this.calories, required this.icon});
+}
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -34,7 +42,75 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int targetCalorie = 2000;
-  int consumedCalorie = 650;
+  
+  // List makanan yang bisa bertambah secara dinamis
+  final List<MealItem> meals = [
+    MealItem(title: 'Sarapan', calories: 350, icon: Icons.wb_sunny_outlined),
+    MealItem(title: 'Makan Siang', calories: 300, icon: Icons.light_mode_outlined),
+  ];
+
+  int get consumedCalorie {
+    return meals.fold(0, (sum, item) => sum + item.calories);
+  }
+
+  void _showAddMealDialog() {
+    final titleController = TextEditingController();
+    final calorieController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Tambah Makanan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Makanan/Sesi',
+                  hintText: 'Misal: Makan Malam / Snack',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: calorieController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Jumlah Kalori (kcal)',
+                  hintText: 'Misal: 450',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = titleController.text.trim();
+                final cal = int.tryParse(calorieController.text.trim()) ?? 0;
+
+                if (name.isNotEmpty && cal > 0) {
+                  setState(() {
+                    meals.add(MealItem(
+                      title: name,
+                      calories: cal,
+                      icon: Icons.restaurant_menu,
+                    ));
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +171,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 20),
                   const Text('Catatan Makan Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
-                  _buildMealTile('Sarapan', '350 kcal', Icons.wb_sunny_outlined),
-                  _buildMealTile('Makan Siang', '300 kcal', Icons.light_mode_outlined),
-                  _buildMealTile('Makan Malam', 'Belum dicatat', Icons.nightlight_round_outlined),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: meals.length,
+                      itemBuilder: (context, index) {
+                        final item = meals[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: ListTile(
+                            leading: Icon(item.icon, color: const Color(0xFF0D9488)),
+                            title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text('${item.calories} kcal'),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                              onPressed: () {
+                                setState(() {
+                                  meals.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -112,17 +209,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMealTile(String title, String subtitle, IconData icon) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF0D9488)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddMealDialog,
+        backgroundColor: const Color(0xFF0D9488),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
