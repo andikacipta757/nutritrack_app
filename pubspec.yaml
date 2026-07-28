@@ -1,5 +1,5 @@
-name: nutritrack
-description: A new Flutter project.
+name: nutritrack_app
+description: "NutriTrack App"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,31 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
   shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.3.8
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/icon.png
-
-# Konfigurasi Ikon Aplikasi
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/icon.png"
-
-# Konfigurasi Splash Screen
-flutter_native_splash:
-  color: "#0D9488"
-  image: assets/icon.png
-  android_12:
-    image: assets/icon.png
-    icon_background_color: "#0D9488"
