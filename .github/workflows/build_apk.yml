@@ -24,14 +24,19 @@ jobs:
         flutter-version: '3.19.x'
         channel: 'stable'
 
-    - name: Install Dependencies
-      run: flutter pub get
-
-    - name: Build APK
-      run: flutter build apk --split-per-abi
+    - name: Auto Fix Project Structure & Build APK
+      run: |
+        # Buat dummy project flutter lengkap
+        flutter create temp_app
+        # Salin file android, ios, dan pubspec bawaan flutter
+        cp -r temp_app/android ./ 2>/dev/null || true
+        cp -r temp_app/ios ./ 2>/dev/null || true
+        # Install dependency & build apk
+        flutter pub get
+        flutter build apk --release --no-tree-shake-icons
 
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: release-apk
+        name: nutritrack-app-release
         path: build/app/outputs/flutter-apk/app-release.apk
