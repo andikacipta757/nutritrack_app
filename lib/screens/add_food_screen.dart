@@ -1,42 +1,34 @@
 import 'package:flutter/material.dart';
 import '../models/meal_item.dart';
 
-// Model Makanan untuk Database Lokal
 class FoodItem {
   final String name;
   final double calories;
-  final double carbs;
-  final double protein;
-  final double fat;
   final String servingSize;
 
   const FoodItem({
     required this.name,
     required this.calories,
-    required this.carbs,
-    required this.protein,
-    required this.fat,
     this.servingSize = '1 porsi',
   });
 }
 
-// Database Makanan
 const List<FoodItem> foodDatabase = [
-  FoodItem(name: 'Nasi Putih', calories: 175, carbs: 40, protein: 3, fat: 0.4, servingSize: '1 centong (100g)'),
-  FoodItem(name: 'Nasi Goreng', calories: 330, carbs: 42, protein: 8, fat: 14, servingSize: '1 porsi (200g)'),
-  FoodItem(name: 'Nasi Uduk', calories: 260, carbs: 36, protein: 5, fat: 11, servingSize: '1 porsi (150g)'),
-  FoodItem(name: 'Ayam Goreng', calories: 260, carbs: 0, protein: 25, fat: 17, servingSize: '1 potong (100g)'),
-  FoodItem(name: 'Dada Ayam Rebus', calories: 165, carbs: 0, protein: 31, fat: 3.6, servingSize: '100g'),
-  FoodItem(name: 'Telur Dadar', calories: 110, carbs: 0.6, protein: 7, fat: 9, servingSize: '1 butir'),
-  FoodItem(name: 'Telur Ceplok', calories: 90, carbs: 0.4, protein: 6.3, fat: 7, servingSize: '1 butir'),
-  FoodItem(name: 'Telur Rebus', calories: 78, carbs: 0.6, protein: 6.3, fat: 5.3, servingSize: '1 butir'),
-  FoodItem(name: 'Tahu Goreng', calories: 78, carbs: 2, protein: 8, fat: 5, servingSize: '1 buah (50g)'),
-  FoodItem(name: 'Tempe Goreng', calories: 118, carbs: 8, protein: 7, fat: 7, servingSize: '1 potong (50g)'),
-  FoodItem(name: 'Soto Ayam', calories: 310, carbs: 25, protein: 20, fat: 12, servingSize: '1 mangkok'),
-  FoodItem(name: 'Bakso Sapi', calories: 350, carbs: 32, protein: 18, fat: 16, servingSize: '1 mangkok'),
-  FoodItem(name: 'Rendang Daging', calories: 195, carbs: 4, protein: 15, fat: 13, servingSize: '1 potong (50g)'),
-  FoodItem(name: 'Gado-Gado', calories: 318, carbs: 35, protein: 14, fat: 14, servingSize: '1 porsi'),
-  FoodItem(name: 'Mie Goreng Instant', calories: 380, carbs: 54, protein: 8, fat: 15, servingSize: '1 bungkus'),
+  FoodItem(name: 'Nasi Putih', calories: 175, servingSize: '1 centong (100g)'),
+  FoodItem(name: 'Nasi Goreng', calories: 330, servingSize: '1 porsi (200g)'),
+  FoodItem(name: 'Nasi Uduk', calories: 260, servingSize: '1 porsi (150g)'),
+  FoodItem(name: 'Ayam Goreng', calories: 260, servingSize: '1 potong (100g)'),
+  FoodItem(name: 'Dada Ayam Rebus', calories: 165, servingSize: '100g'),
+  FoodItem(name: 'Telur Dadar', calories: 110, servingSize: '1 butir'),
+  FoodItem(name: 'Telur Ceplok', calories: 90, servingSize: '1 butir'),
+  FoodItem(name: 'Telur Rebus', calories: 78, servingSize: '1 butir'),
+  FoodItem(name: 'Tahu Goreng', calories: 78, servingSize: '1 buah (50g)'),
+  FoodItem(name: 'Tempe Goreng', calories: 118, servingSize: '1 potong (50g)'),
+  FoodItem(name: 'Soto Ayam', calories: 310, servingSize: '1 mangkok'),
+  FoodItem(name: 'Bakso Sapi', calories: 350, servingSize: '1 mangkok'),
+  FoodItem(name: 'Rendang Daging', calories: 195, servingSize: '1 potong (50g)'),
+  FoodItem(name: 'Gado-Gado', calories: 318, servingSize: '1 porsi'),
+  FoodItem(name: 'Mie Goreng Instant', calories: 380, servingSize: '1 bungkus'),
 ];
 
 class AddFoodScreen extends StatefulWidget {
@@ -78,8 +70,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-
-            // Autocomplete Search
             Autocomplete<FoodItem>(
               displayStringForOption: (FoodItem option) => option.name,
               optionsBuilder: (TextEditingValue textEditingValue) {
@@ -111,7 +101,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 );
               },
             ),
-
             if (_selectedFood != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -126,17 +115,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 ),
               ),
             ],
-
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 10),
-
             const Text(
               'Detail Catatan',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
@@ -146,7 +132,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
             TextField(
               controller: _caloriesController,
               keyboardType: TextInputType.number,
@@ -157,7 +142,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
             DropdownButtonFormField<String>(
               value: _selectedCategory,
               decoration: const InputDecoration(
@@ -171,9 +155,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 if (val != null) setState(() => _selectedCategory = val);
               },
             ),
-
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               height: 48,
