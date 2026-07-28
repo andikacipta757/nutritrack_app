@@ -6,16 +6,31 @@ void main() {
   runApp(const NutriTrackApp());
 }
 
-class NutriTrackApp extends StatelessWidget {
+class NutriTrackApp extends StatefulWidget {
   const NutriTrackApp({super.key});
+
+  @override
+  State<NutriTrackApp> createState() => _NutriTrackAppState();
+}
+
+class _NutriTrackAppState extends State<NutriTrackApp> {
+  bool isDarkMode = false;
+
+  void toggleTheme() {
+    setState(() {
+      isDarkMode = !isDarkMode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NutriTrack',
       debugShowCheckedModeBanner: false,
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0D9488),
           primary: const Color(0xFF0D9488),
@@ -24,7 +39,18 @@ class NutriTrackApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF1F5F9),
       ),
-      home: const DashboardScreen(),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          brightness: Brightness.dark,
+          seedColor: const Color(0xFF0D9488),
+          primary: const Color(0xFF0D9488),
+          secondary: const Color(0xFF60A5FA),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+      ),
+      home: DashboardScreen(onToggleTheme: toggleTheme, isDarkMode: isDarkMode),
     );
   }
 }
@@ -52,19 +78,21 @@ class MealItem {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback onToggleTheme;
+  final bool isDarkMode;
+
+  const DashboardScreen({super.key, required this.onToggleTheme, required this.isDarkMode});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Data Profil Pengguna & BMR
   int age = 25;
-  double weight = 65; // kg
-  double height = 170; // cm
-  String gender = 'Pria'; // 'Pria' atau 'Wanita'
-  double activityMultiplier = 1.375; // Ringan
+  double weight = 65;
+  double height = 170;
+  String gender = 'Pria';
+  double activityMultiplier = 1.375;
   
   int targetCalorie = 2000;
   int waterGlasses = 0;
@@ -72,13 +100,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<MealItem> meals = [];
 
+  // Data Simulasi Konsumsi Kalori Seminggu Terakhir
+  final List<int> weeklyHistory = [1850, 2100, 1950, 2200, 1800, 2050, 1900];
+  final List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
   @override
   void initState() {
     super.initState();
     _loadSavedData();
   }
 
-  // --- MENGHITUNG TDEE (TARGET KALORI OTOMATIS) ---
   void _calculateTDEE() {
     double bmr;
     if (gender == 'Pria') {
@@ -91,7 +122,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // --- MEMBACA DATA LOKAL ---
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -118,7 +148,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // --- MENYIMPAN DATA LOKAL ---
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('waterGlasses', waterGlasses);
@@ -134,17 +163,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int get totalConsumed => meals.fold(0, (sum, item) => sum + item.calories);
 
-  // Target Makro berdasarkan % Kalori (50% Karbo, 25% Protein, 25% Lemak)
   int get carbsTarget => ((targetCalorie * 0.50) / 4).round();
   int get proteinTarget => ((targetCalorie * 0.25) / 4).round();
   int get fatTarget => ((targetCalorie * 0.25) / 9).round();
 
-  // Estimasi Makro Terkonsumsi (Simulasi Rasio Rata-rata Makanan)
   int get carbsConsumed => ((totalConsumed * 0.50) / 4).round();
   int get proteinConsumed => ((totalConsumed * 0.25) / 4).round();
   int get fatConsumed => ((totalConsumed * 0.25) / 9).round();
 
-  // --- DIALOG EDIT PROFIL & HITUNG BMR ---
+  void _showAnalyticsDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        int avgCalorie = (weeklyHistory.reduce((a, b) => a + b) / weeklyHistory.length).round();
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('📈 Analisis Konsumsi Mingguan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
+              const SizedBox(height: 8),
+              Text('Rata-rata asupan: $avgCalorie kcal / hari', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              const SizedBox(height: 20),
+              
+              // Simple Custom Bar Chart
+              SizedBox(
+                height: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: List.generate(7, (index) {
+                    double heightFactor = (weeklyHistory[index] / (targetCalorie * 1.2)).clamp(0.1, 1.0);
+                    bool isOver = weeklyHistory[index] > targetCalorie;
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('${weeklyHistory[index]}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: 18,
+                          height: 100 * heightFactor,
+                          decoration: BoxDecoration(
+                            color: isOver ? Colors.redAccent : const Color(0xFF0D9488),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(days[index], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text('💡 Catatan NutriTrack:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              const Text('Asupan mingguanmu cukup stabil! Pertahankan pola makan seimbang untuk mencapai target ideal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showProfileDialog() {
     final ageController = TextEditingController(text: age.toString());
     final weightController = TextEditingController(text: weight.toString());
@@ -169,7 +254,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Pengaturan Profil & Target BMR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                    const Text('Pengaturan Profil & Target BMR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
                     const SizedBox(height: 15),
                     Row(
                       children: [
@@ -278,7 +363,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Catat Makanan Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                  const Text('Catat Makanan Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
                   const SizedBox(height: 15),
                   TextField(
                     controller: nameController,
@@ -344,7 +429,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1E3A8A),
+        backgroundColor: widget.isDarkMode ? Colors.grey[900] : const Color(0xFF1E3A8A),
         title: const Row(
           children: [
             Icon(Icons.restaurant, color: Colors.white),
@@ -354,17 +439,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person, color: Colors.white),
-            onPressed: _showProfileDialog,
+            icon: Icon(widget.isDarkMode ? Icons.light_mode : Icons.dark_mode, color: Colors.white),
+            onPressed: widget.onToggleTheme,
+            tooltip: 'Ganti Tema',
           ),
           IconButton(
-            icon: const Icon(Icons.workspace_premium, color: Colors.amber),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur Premium: Bebas Iklan & Analisis Lengkap!')),
-              );
-            },
-          )
+            icon: const Icon(Icons.bar_chart, color: Colors.white),
+            onPressed: _showAnalyticsDialog,
+            tooltip: 'Grafik Mingguan',
+          ),
+          IconButton(
+            icon: const Icon(Icons.person, color: Colors.white),
+            onPressed: _showProfileDialog,
+            tooltip: 'Profil',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -375,7 +463,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              color: Colors.white,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -392,7 +479,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: CircularProgressIndicator(
                                 value: (totalConsumed / targetCalorie).clamp(0.0, 1.0),
                                 strokeWidth: 8,
-                                backgroundColor: Colors.grey[200],
+                                backgroundColor: Colors.grey[300],
                                 color: remaining >= 0 ? const Color(0xFF0D9488) : Colors.red,
                               ),
                             ),
@@ -404,7 +491,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             )
                           ],
                         ),
-                        _buildStatColumn('Terpakai', '$totalConsumed', 'kcal', const Color(0xFF1E3A8A)),
+                        _buildStatColumn('Terpakai', '$totalConsumed', 'kcal', const Color(0xFF0D9488)),
                       ],
                     ),
                     const Divider(height: 30),
@@ -426,7 +513,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              color: Colors.blue[50],
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Row(
@@ -440,7 +526,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Asupan Air Minum', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('$waterGlasses / 8 Gelas (200ml)', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                            Text('$waterGlasses / 8 Gelas (200ml)', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                           ],
                         ),
                       ],
@@ -473,7 +559,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 20),
 
-            const Text('Jurnal Makanan Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+            const Text('Jurnal Makanan Hari Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
 
             ...['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan'].map((cat) {
@@ -524,7 +610,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomSheet: Container(
         width: double.infinity,
         height: 48,
-        color: Colors.grey[200],
+        color: widget.isDarkMode ? Colors.black26 : Colors.grey[200],
         alignment: Alignment.center,
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -571,7 +657,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: Colors.grey[200],
+          backgroundColor: Colors.grey[300],
           color: color,
           minHeight: 6,
           borderRadius: BorderRadius.circular(3),
