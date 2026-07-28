@@ -15,11 +15,9 @@ class MealItem {
         'category': category,
       };
 
-  factory MealItem.fromJson(Map<String, dynamic> json) {
-    return MealItem(
-      name: json['name'] ?? '',
-      calories: json['calories'] ?? 0,
-      category: json['category'] ?? 'Sarapan',
-    );
-  }
+  factory MealItem.fromJson(Map<String, dynamic> json) => MealItem(
+        name: json['name'] as String,
+        calories: json['calories'] as int,
+        category: json['category'] as String,
+      );
 }
