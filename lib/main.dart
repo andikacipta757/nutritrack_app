@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/meal_item.dart';
 import 'screens/paywall_dialog.dart';
+import 'screens/add_food_screen.dart';
 
 void main() {
   runApp(const NutriTrackApp());
@@ -333,80 +334,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showAddMealDialog() {
-    final nameController = TextEditingController();
-    final calController = TextEditingController();
-    String selectedCategory = 'Sarapan';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                top: 20, left: 20, right: 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Catat Makanan Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
-                  const SizedBox(height: 15),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(labelText: 'Nama Makanan', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: calController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'Kalori (kcal)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(labelText: 'Kategori', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                    items: ['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan']
-                        .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setModalState(() => selectedCategory = val);
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D9488),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () {
-                        final name = nameController.text.trim();
-                        final cal = int.tryParse(calController.text.trim()) ?? 0;
-                        if (name.isNotEmpty && cal > 0) {
-                          setState(() {
-                            meals.add(MealItem(name: name, calories: cal, category: selectedCategory));
-                          });
-                          _saveData();
-                          Navigator.pop(context);
-                        }
-                      },
-                      child: const Text('Simpan Catatan', style: TextStyle(color: Colors.white, fontSize: 16)),
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
-        );
-      },
+  // Fungsi untuk berpindah ke layar AddFoodScreen
+  void _navigateToAddFoodScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddFoodScreen()),
     );
+
+    if (result != null && result is MealItem) {
+      setState(() {
+        meals.add(result);
+      });
+      _saveData();
+    }
   }
 
   @override
@@ -629,7 +569,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddMealDialog,
+        onPressed: _navigateToAddFoodScreen,
         backgroundColor: const Color(0xFF0D9488),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Tambah Makan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
